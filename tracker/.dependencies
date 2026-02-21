@@ -1,0 +1,4 @@
+# Dependencies
+bc
+jq
+sqlite3

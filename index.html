@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GrinBot Usage Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #eee;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .subtitle {
+      color: #888;
+      font-size: 0.9rem;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+    }
+    
+    .stat-label {
+      color: #888;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    
+    .stat-unit {
+      font-size: 0.9rem;
+      color: #888;
+      margin-left: 0.25rem;
+    }
+    
+    .chart-container {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 1.5rem;
+      backdrop-filter: blur(10px);
+    }
+    
+    .chart-title {
+      font-size: 1rem;
+      color: #ccc;
+      margin-bottom: 1rem;
+    }
+    
+    .chart-wrapper {
+      position: relative;
+      height: 300px;
+    }
+    
+    .models-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+    
+    .model-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 1.25rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .model-name {
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .model-status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4ade80;
+    }
+    
+    .model-stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+    }
+    
+    .model-stat {
+      text-align: center;
+    }
+    
+    .model-stat-value {
+      color: #fff;
+      font-weight: 600;
+    }
+    
+    .model-stat-label {
+      color: #888;
+      font-size: 0.75rem;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: #888;
+    }
+    
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: #666;
+      font-size: 0.8rem;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 4rem;
+      color: #888;
+    }
+    
+    .spinner {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 2px solid rgba(255,255,255,0.1);
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🤖 GrinBot Usage</h1>
+      <p class="subtitle">AI Model Cost Tracking Dashboard</p>
+    </header>
+    
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Loading usage data...</p>
+    </div>
+    
+    <div id="content" style="display: none;">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Cost</div>
+          <div class="stat-value" id="total-cost">€0<span class="stat-unit">.00</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Requests</div>
+          <div class="stat-value" id="total-requests">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Active Models</div>
+          <div class="stat-value" id="active-models">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">This Month</div>
+          <div class="stat-value" id="month-cost">€0<span class="stat-unit">.00</span></div>
+        </div>
+      </div>
+      
+      <div class="chart-container">
+        <h3 class="chart-title">Daily Cost (Last 30 Days)</h3>
+        <div class="chart-wrapper">
+          <canvas id="dailyChart"></canvas>
+        </div>
+      </div>
+      
+      <div class="chart-container">
+        <h3 class="chart-title">Cost by Model</h3>
+        <div class="chart-wrapper">
+          <canvas id="modelChart"></canvas>
+        </div>
+      </div>
+      
+      <div id="models-section">
+        <h3 class="chart-title">Model Breakdown</h3>
+        <div class="models-grid" id="models-grid"></div>
+      </div>
+    </div>
+    
+    <div id="empty-state" class="empty-state" style="display: none;">
+      <div class="empty-state-icon">📊</div>
+      <h2>No Data Yet</h2>
+      <p>Usage data will appear once the tracker starts collecting metrics.</p>
+    </div>
+    
+    <footer>
+      <p>Last updated: <span id="last-updated">—</span></p>
+      <p>GrinBot • Static dashboard • <a href="https://github.com/jollygrin/grinbot-usage" style="color: #667eea;">View Source</a></p>
+    </footer>
+  </div>
+
+  <script>
+    const MODEL_COLORS = {
+      'kimi-k2.5': '#667eea',
+      'gpt-4': '#10b981',
+      'gpt-4o': '#34d399',
+      'claude-3-opus': '#f59e0b',
+      'claude-3-sonnet': '#fbbf24',
+      'default': '#8b5cf6'
+    };
+    
+    function getModelColor(model) {
+      return MODEL_COLORS[model] || MODEL_COLORS['default'];
+    }
+    
+    function formatCurrency(value) {
+      return '€' + value.toFixed(2);
+    }
+    
+    function formatNumber(num) {
+      if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+      if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+      return num.toString();
+    }
+    
+    async function loadData() {
+      try {
+        const response = await fetch('data/usage.json');
+        const data = await response.json();
+        
+        document.getElementById('loading').style.display = 'none';
+        
+        if (!data.daily || data.daily.length === 0) {
+          document.getElementById('empty-state').style.display = 'block';
+          document.getElementById('last-updated').textContent = new Date().toLocaleString();
+          return;
+        }
+        
+        document.getElementById('content').style.display = 'block';
+        
+        // Update summary stats
+        document.getElementById('total-cost').innerHTML = formatCurrency(data.summary?.totalCost || 0);
+        document.getElementById('total-requests').textContent = formatNumber(data.summary?.totalRequests || 0);
+        document.getElementById('active-models').textContent = data.summary?.activeModels?.length || 0;
+        
+        // Calculate current month cost
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        const monthData = data.monthly?.find(m => m.month === currentMonth);
+        document.getElementById('month-cost').innerHTML = formatCurrency(monthData?.cost || 0);
+        
+        document.getElementById('last-updated').textContent = new Date(data.generatedAt).toLocaleString();
+        
+        // Prepare daily chart data (last 30 days)
+        const last30Days = data.daily.slice(-30);
+        const dates = last30Days.map(d => {
+          const date = new Date(d.date);
+          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+        const costs = last30Days.map(d => d.cost || 0);
+        
+        // Daily cost chart
+        new Chart(document.getElementById('dailyChart'), {
+          type: 'line',
+          data: {
+            labels: dates,
+            datasets: [{
+              label: 'Daily Cost (€)',
+              data: costs,
+              borderColor: '#667eea',
+              backgroundColor: 'rgba(102, 126, 234, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 3,
+              pointBackgroundColor: '#667eea'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => '€' + ctx.raw.toFixed(2)
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                ticks: { color: '#888', maxTicksLimit: 10 }
+              },
+              y: {
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                ticks: { color: '#888', callback: v => '€' + v }
+              }
+            }
+          }
+        });
+        
+        // Model breakdown chart
+        const modelNames = Object.keys(data.models || {});
+        const modelCosts = modelNames.map(m => data.models[m]?.totalCost || 0);
+        const modelColors = modelNames.map(getModelColor);
+        
+        new Chart(document.getElementById('modelChart'), {
+          type: 'doughnut',
+          data: {
+            labels: modelNames,
+            datasets: [{
+              data: modelCosts,
+              backgroundColor: modelColors,
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'right',
+                labels: { color: '#ccc', padding: 20 }
+              },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => {
+                    const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                    const pct = ((ctx.raw / total) * 100).toFixed(1);
+                    return `${ctx.label}: €${ctx.raw.toFixed(2)} (${pct}%)`;
+                  }
+                }
+              }
+            }
+          }
+        });
+        
+        // Model cards
+        const modelsGrid = document.getElementById('models-grid');
+        modelNames.forEach(model => {
+          const m = data.models[model];
+          const card = document.createElement('div');
+          card.className = 'model-card';
+          card.innerHTML = `
+            <div class="model-name">
+              <span class="model-status" style="background: ${getModelColor(model)}"></span>
+              ${model}
+            </div>
+            <div class="model-stats">
+              <div class="model-stat">
+                <div class="model-stat-value">${formatCurrency(m.totalCost || 0)}</div>
+                <div class="model-stat-label">Total Cost</div>
+              </div>
+              <div class="model-stat">
+                <div class="model-stat-value">${formatNumber(m.requests || 0)}</div>
+                <div class="model-stat-label">Requests</div>
+              </div>
+              <div class="model-stat">
+                <div class="model-stat-value">${formatNumber((m.inputTokens || 0) + (m.outputTokens || 0))}</div>
+                <div class="model-stat-label">Tokens</div>
+              </div>
+            </div>
+          `;
+          modelsGrid.appendChild(card);
+        });
+        
+      } catch (err) {
+        console.error('Failed to load data:', err);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('empty-state').style.display = 'block';
+        document.getElementById('empty-state').innerHTML = `
+          <div class="empty-state-icon">⚠️</div>
+          <h2>Failed to Load Data</h2>
+          <p>${err.message}</p>
+        `;
+      }
+    }
+    
+    loadData();
+  </script>
+</body>
+</html>
