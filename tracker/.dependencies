@@ -1,4 +1,4 @@
 # Dependencies
-bc
-jq
-sqlite3
+# - bc (installed)
+# - python3 (installed)
+# - sqlite3 (usually available, else: apt-get install sqlite3)

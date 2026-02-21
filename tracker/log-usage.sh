@@ -61,16 +61,19 @@ if [ ! -f "$DB_PATH" ]; then
   sqlite3 "$DB_PATH" < "$(dirname "$0")/schema.sql"
 fi
 
-# Calculate cost based on pricing
-COST_USD=$(sqlite3 "$DB_PATH" << EOF
-SELECT 
-  COALESCE(
-    ($INPUT_TOKENS * input_price / 1000000.0) + 
-    ($OUTPUT_TOKENS * output_price / 1000000.0), 
-    0
-  )
-FROM model_pricing 
-WHERE model = '$MODEL';
+# Calculate cost using Python (no jq needed)
+COST_USD=$(python3 << EOF
+import sqlite3
+conn = sqlite3.connect("$DB_PATH")
+cursor = conn.cursor()
+cursor.execute("SELECT input_price, output_price FROM model_pricing WHERE model = ?", ("$MODEL",))
+row = cursor.fetchone()
+if row:
+  cost = ($INPUT_TOKENS * row[0] / 1000000.0) + ($OUTPUT_TOKENS * row[1] / 1000000.0)
+  print(cost)
+else:
+  print(0)
+conn.close()
 EOF
 )
 
@@ -82,4 +85,5 @@ VALUES
   ('$MODEL', '${PROVIDER:-}', $INPUT_TOKENS, $OUTPUT_TOKENS, ${COST_USD:-0}, ${DURATION_MS:-NULL}, '$STATUS', '${SESSION_KEY:-}');
 EOF
 
-echo "Logged: $MODEL | $INPUT_TOKENS in / $OUTPUT_TOKENS out | €$(echo "$COST_USD * 0.92" | bc -l | xargs printf "%.4f")"
+COST_EUR=$(echo "$COST_USD * 0.92" | bc -l)
+printf "Logged: %s | %d in / %d out | €%.4f\n" "$MODEL" "$INPUT_TOKENS" "$OUTPUT_TOKENS" "$COST_EUR"
